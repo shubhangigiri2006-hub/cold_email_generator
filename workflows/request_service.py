@@ -4,11 +4,12 @@ from agents.llm_client import complete
 
 def _clean_search_query(purpose: str) -> str:
     """Turns a raw admin-typed purpose into a clean search-engine query
-    using the LLM, so odd phrasing like 'require 200 lights' doesn't
-    produce a broken literal search string."""
+    using the LLM, so odd phrasing doesn't produce a broken literal
+    search string. Location details the admin typed are preserved."""
     system = (
         "You convert a business need into a short web search query "
         "for finding companies/vendors that could fulfill it. "
+        "Preserve any location mentioned. "
         "Reply with ONLY the search query, nothing else, no quotes."
     )
     query = complete(system, purpose, max_tokens=30, temperature=0.2)
@@ -29,7 +30,8 @@ def run(ctx: dict):
     print("\nDo you have a specific company in mind?")
     print("  1. Yes, I'll specify the company")
     print("  2. No, search the web for a suitable company")
-    sub_choice = input("Choose 1 or 2: ").strip()
+    print("  3. I already have the recipient's email address")
+    sub_choice = input("Choose 1, 2, or 3: ").strip()
 
     target_email = None
     company_name = None
@@ -37,6 +39,15 @@ def run(ctx: dict):
     if sub_choice == "1":
         company_name = input("Enter the company name: ").strip()
         target_email = _resolve_email(web_search, company_name, None)
+
+    elif sub_choice == "3":
+        company_name = input("Company name (for context in the email, optional): ").strip() or "the recipient"
+        manual_email = input("Enter the recipient's email address: ").strip()
+        if email_utils.is_valid_email(manual_email):
+            target_email = manual_email
+        else:
+            print("That doesn't look like a valid email address. Cancelling.")
+            return
 
     elif sub_choice == "2":
         search_query = _clean_search_query(purpose)
@@ -98,7 +109,7 @@ def run(ctx: dict):
     _show_and_optionally_send(target_email, result)
 
 
-def _resolve_email(web_search, company_name: str, website: str) -> str:
+def _resolve_email(web_search, company_name: str, website):
     """Tries auto-discovery first, falls back to manual entry."""
     print(f"Looking up a contact email for '{company_name}' ...")
     email = web_search.find_company_email(company_name, website)
@@ -130,4 +141,5 @@ def _show_and_optionally_send(target_email: str, result: dict):
         email_utils.send_email(target_email, result["subject"], result["body"])
     else:
         print("Email not sent. You can copy it from above.")
+        
         
