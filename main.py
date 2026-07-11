@@ -5,7 +5,7 @@ from rag.company_knowledge_base import CompanyKnowledgeBase
 from tools.web_search import WebSearchTool
 from agents.orchestrator import EmailOrchestrator
 
-from workflows import request_service
+from workflows import request_service, provide_service, hire_candidate, reject_candidate, notification
 
 MENU_TEXT = """
 ==================== MAIN MENU ====================
@@ -47,6 +47,10 @@ def main():
 
     handlers = {
         "1": request_service.run,
+        "2": provide_service.run,
+        "3": hire_candidate.run,
+        "4": reject_candidate.run,
+        "5": notification.run,
     }
 
     while True:

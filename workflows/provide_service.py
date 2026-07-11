@@ -3,12 +3,11 @@ from agents.llm_client import complete
 
 
 def _clean_search_query(purpose: str) -> str:
-    """Turns a raw admin-typed purpose into a clean search-engine query
-    using the LLM, so odd phrasing doesn't produce a broken literal
-    search string. Location details the admin typed are preserved."""
+    """Turns a raw admin-typed purpose into a clean search-engine query,
+    preserving any location mentioned."""
     system = (
-        "You convert a business need into a short web search query "
-        "for finding companies/vendors that could fulfill it. "
+        "You convert a business pitch/target description into a short web "
+        "search query for finding companies that would be good prospects. "
         "Preserve any location mentioned. "
         "Reply with ONLY the search query, nothing else, no quotes."
     )
@@ -22,14 +21,16 @@ def run(ctx: dict):
     orchestrator = ctx["orchestrator"]
     org_profile = ctx["org_profile"]
 
-    purpose = input("\nDescribe the service you require (one line): ").strip()
+    purpose = input(
+        "\nDescribe the service you want to pitch, and to what kind of company (one line): "
+    ).strip()
     if not purpose:
         print("Purpose cannot be empty. Returning to menu.")
         return
 
     print("\nDo you have a specific company in mind?")
     print("  1. Yes, I'll specify the company")
-    print("  2. No, search the web for a suitable company")
+    print("  2. No, search the web for a suitable prospect")
     print("  3. I already have the recipient's email address")
     sub_choice = input("Choose 1, 2, or 3: ").strip()
 
@@ -97,19 +98,18 @@ def run(ctx: dict):
     print("Retrieving company context from knowledge base (RAG) ...")
     company_context = rag_kb.find_by_name(company_name) or {"company_name": company_name}
 
-    print("Generating email with writer/reviewer agents ...")
+    print("Generating pitch email with writer/reviewer agents ...")
     result = orchestrator.generate_email(
         purpose=purpose,
         org_profile=org_profile,
         company_context=company_context,
-        email_type="request_service",
+        email_type="provide_service",
     )
 
     _show_and_optionally_send(target_email, result)
 
 
 def _resolve_email(web_search, company_name: str, website):
-    """Tries auto-discovery first, falls back to manual entry."""
     print(f"Looking up a contact email for '{company_name}' ...")
     email = web_search.find_company_email(company_name, website)
     if email:

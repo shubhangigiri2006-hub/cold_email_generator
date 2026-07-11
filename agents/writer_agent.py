@@ -12,6 +12,34 @@ BODY:
 <email body, 120-180 words, professional tone, ends with a clear call to action and the sender's name/title>
 """
 
+EMAIL_TYPE_INSTRUCTIONS = {
+    "request_service": (
+        "IMPORTANT: The SENDER is the one who NEEDS a service. The RECIPIENT is the "
+        "potential service provider. Do NOT pitch the sender's own services in this "
+        "email. Focus entirely on the sender's need (see PURPOSE below) and politely "
+        "ask whether the recipient can help/provide that service, referencing why the "
+        "recipient specifically seems like a good fit based on the RECIPIENT CONTEXT."
+    ),
+    "provide_service": (
+        "IMPORTANT: The SENDER is pitching its own services to the RECIPIENT, who is "
+        "a potential client. Focus on how the sender's services (see SENDER ORGANIZATION "
+        "PROFILE) would specifically benefit the recipient, referencing the RECIPIENT "
+        "CONTEXT to personalize the pitch."
+    ),
+    "hire_candidate": (
+        "IMPORTANT: This email informs a candidate they have been selected/hired. "
+        "Be warm, congratulatory, and clear about next steps."
+    ),
+    "reject_candidate": (
+        "IMPORTANT: This email informs a candidate they were not selected. Be "
+        "respectful, brief, and encouraging without being falsely hopeful."
+    ),
+    "notification": (
+        "IMPORTANT: This is a broadcast announcement (not a personalized pitch or "
+        "request). Keep it informative and appropriately toned to the announcement type."
+    ),
+}
+
 
 def _format_company_context(company_context: Optional[Dict]) -> str:
     if not company_context:
@@ -37,9 +65,12 @@ class WriterAgent:
         email_type: str = "request_service",
     ) -> str:
         system = WRITER_SYSTEM_PROMPT.format(org_name=org_profile.get("name", "our organization"))
+        type_instruction = EMAIL_TYPE_INSTRUCTIONS.get(email_type, "")
 
         user_prompt = f"""
 EMAIL TYPE: {email_type}
+{type_instruction}
+
 PURPOSE / INTENT (from admin): {purpose}
 
 SENDER ORGANIZATION PROFILE:
