@@ -69,6 +69,8 @@ def login_screen():
         username = st.text_input("Username")
         password = st.text_input("Password", type="password")
         submitted = st.form_submit_button("Log in")
+    st.write("Configured Username:", ADMIN_USERNAME)
+    st.write("Configured Password:", ADMIN_PASSWORD) 
     if submitted:
         if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
             st.session_state.authenticated = True
