@@ -121,7 +121,7 @@ cold-email-generator/
 
 1. **Clone the repository**
    ```bash
-   git clone 
+   git clone https://github.com/shubhangigiri2006-hub/cold_email_generator.git
    ```
 
 2. **Create a virtual environment**
