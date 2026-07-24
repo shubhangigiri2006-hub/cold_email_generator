@@ -18,18 +18,26 @@ Personalized cold email generation powered by Retrieval-Augmented Generation (RA
 - [Example Workflow](#example-workflow)
 - [Evaluation](#evaluation)
 - [Future Improvements](#future-improvements)
+- [Known Issues](#limitations)
 - [Team Members](#team-members)
 -
 
----
 
 ## Overview
 
-The **Cold Email Generator** is an AI-powered system that automates the creation of highly personalized cold outreach emails. It combines **Retrieval-Augmented Generation (RAG)** — to ground email content in relevant, factual context (e.g., company info, job postings, portfolio data) — with a **multi-agent orchestration** pipeline, where specialized agents handle distinct stages of the email-generation process (research, retrieval, drafting, and refinement).
+The **Cold Email Generator** is an AI-powered system that automates the creation of highly personalized cold outreach emails. It combines **Retrieval-Augmented Generation (RAG)** — to ground email content in relevant, factual context (e.g., company info, job postings, portfolio data) — with a CREWAI **multi-agent orchestration** pipeline, where specialized agents handle distinct stages of the email-generation process (research, retrieval, drafting, and refinement).
 
 This approach reduces generic, templated outreach and produces emails tailored to the recipient's context, improving relevance and response rates.
 
 ---
+## RAG (Retrieval-Augmented Generation)
+
+Before the writer agent drafts anything, the system retrieves verified context about the recipient company (industry, services, trust score, market evaluation) from `rag/company_data.json`, using TF-IDF vectorization and cosine similarity. This grounds every email in real data rather than LLM-invented facts. A minimum relevance threshold (0.15) prevents a weak, coincidental text match from being treated as valid company context.
+
+## Multi-Agent Orchestration (CrewAI)
+
+Each LLM call — drafting, revising, or reviewing — runs as a single-agent, single-task CrewAI `Crew`, routed to Groq's Llama 3.3 70B model via CrewAI's `LLM` class. The writer (temperature 0.7) and reviewer (temperature 0.2) are deliberately tuned differently: fluent generation vs. consistent judgment. The orchestrator loops between them, feeding the reviewer's structured feedback back into the writer's next revision, up to 3 rounds.
+
 
 ## Features
 
@@ -90,11 +98,14 @@ Each agent operates independently but shares state through the orchestration lay
 |---------------------|----------------|
 | Language             | Python |
 | Backend Framework    | FastAPI |
-| Orchestration        | orchestration done in python itself |
+| Orchestration        | CREWAI  |
 | LLM Provider         |  Groq  |
 | Environment Mgmt     | python-dotenv |
 
 ---
+## Tech Stack
+
+Groq (Llama 3.3 70B) · CrewAI · Tavily · scikit-learn · Streamlit (for frontend) · Python 3.11
 
 ## Project Structure
 
@@ -104,7 +115,7 @@ cold-email-generator/
 ├── agents/                 # Multi-agent logic
 │   ├── research_agent.py
 │   ├── retrieval_agent.py
-│   └── writer_agent.py
+│   └── writer_agent.py      #orchestration in CREWAI
 ├── rag/                     # RAG pipeline components
 │   ├── embeddings.py
 │   └── vector_store.py
@@ -176,14 +187,8 @@ SMTP_PASSWORD=" "
    ```bash
    python app.py
    ```
-
-2. **Access the API**
-   Navigate to:
-   ```
-   http://localhost:8000/docs
-   ```
-   to view the interactive Swagger UI and test endpoints.
-
+2.Pip install streamlit
+Streamlit run app.py
 ---
 
 ## Example Workflow
@@ -239,6 +244,14 @@ If evaluation is implemented, consider documenting:
 
 ---
 
+## Known Issues / Limitations
+
+- **Web-based email discovery is unreliable.** Search results sometimes surface listicle/aggregator articles ("Top 10 Best...") rather than individual companies, and even real company sites often hide contact emails behind forms or JavaScript rendering that simple scraping can't see. The manual-entry fallback exists specifically because of this.
+- **CrewAI + Groq required two workarounds:** (1) a version conflict between CrewAI's and LiteLLM's required `httpx` versions, resolved via controlled reinstallation order; (2) a confirmed CrewAI bug ([issue #5886](https://github.com/crewAIInc/crewAI/issues/5886)) where a prompt-caching field is injected into messages for all providers but only stripped for Anthropic, causing Groq to reject requests — resolved via a documented community monkey-patch.
+- **Admin authentication is a placeholder** — plaintext credential comparison against environment variables, not production-grade auth.
+- **Single-tenant by design** — configured for one organization profile at a time via `.env`.
+- **RAG uses TF-IDF, not semantic embeddings** — matches on keyword overlap rather than meaning; a natural upgrade path is `sentence-transformers` + FAISS/Chroma as the knowledge base scales.
+  ```
 ## Team Members
 
 SHUBHANGI GIRI, ARPIT UPADHYAY, AKSHITA TIWARI , SANJANA, NISHTHA JANGIR
